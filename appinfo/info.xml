@@ -1,0 +1,67 @@
+<?xml version="1.0"?>
+<info>
+	<id>app-skeleton-python</id>
+	<name>App Skeleton</name>
+	<summary>Nextcloud Python Application Skeleton</summary>
+	<description>
+	<![CDATA[Simplest skeleton of the Nextcloud application written in python]]>
+	</description>
+	<version>3.0.1</version>
+	<licence>MIT</licence>
+	<author mail="bigcat88@icloud.com" homepage="https://github.com/bigcat88">Alexander Piskun</author>
+	<namespace>PyAppV2_skeleton</namespace>
+	<category>tools</category>
+	<website>https://github.com/nextcloud/app-skeleton-python</website>
+	<bugs>https://github.com/nextcloud/app-skeleton-python/issues</bugs>
+	<repository type="git">https://github.com/nextcloud/app-skeleton-python</repository>
+	<dependencies>
+		<nextcloud min-version="29" max-version="32"/>
+	</dependencies>
+	<external-app>
+		<docker-install>
+			<registry>ghcr.io</registry>
+			<image>nextcloud/app-skeleton-python</image>
+			<image-tag>latest</image-tag>
+		</docker-install>
+		<environment-variables>
+			<variable>
+				<name>TEST_ENV_1</name>
+				<display-name>Test environment with default value</display-name>
+				<description>Test environment with default value</description>
+				<default>0</default>
+			</variable>
+			<variable>
+				<name>TEST_ENV_2</name>
+				<display-name>Test environment without default value</display-name>
+				<description>Test environment without default value</description>
+			</variable>
+		</environment-variables>
+		<routes>
+			<route>
+				<url>^/public$</url>
+				<verb>GET</verb>
+				<access_level>PUBLIC</access_level>
+			</route>
+			<route>
+				<url>^/user$</url>
+				<verb>GET</verb>
+				<access_level>USER</access_level>
+			</route>
+			<route>
+				<url>^/admin$</url>
+				<verb>GET</verb>
+				<access_level>ADMIN</access_level>
+			</route>
+			<route>
+				<url>^/$</url>
+				<verb>GET</verb>
+				<access_level>USER</access_level>
+			</route>
+			<route>
+				<url>^/ws$</url>
+				<verb>GET</verb>
+				<access_level>USER</access_level>
+			</route>
+		</routes>
+	</external-app>
+</info>
