@@ -61,5 +61,12 @@ if [ -f /frpc.toml ] && [ -n "$HP_SHARED_KEY" ]; then
 fi
 
 # Start the main application (adjust it for your ExApp)
+persistent_storage=${APP_PERSISTENT_STORAGE:-persistent_storage}
+model_dir="$persistent_storage/model_files"
+echo "Storing models in $model_dir"
+if [ ! -d "$model_dir" ]; then
+    mkdir -p -m 750 "$model_dir"
+fi
+export HF_HOME=${HF_HOME:-$model_dir}
 echo "Starting main application..."
 exec python3 main.py

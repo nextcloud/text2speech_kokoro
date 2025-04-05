@@ -7,7 +7,7 @@ jobs:
   push_to_registry:
     name: Build image
     runs-on: ubuntu-22.04
-    if: ${{ github.repository_owner == 'nextcloud' }}
+    if: ${{ github.repository_owner == 'lukasdotcom' }}
     permissions:
       packages: write
       contents: read

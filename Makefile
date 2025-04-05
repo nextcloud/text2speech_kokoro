@@ -1,8 +1,8 @@
 .DEFAULT_GOAL := help
 
-APP_ID := app-skeleton-python
-APP_NAME := SkeletonApp
-APP_VERSION := 3.0.0
+APP_ID := text2speech_kokoro
+APP_NAME := Kokoro
+APP_VERSION := 1.0.0
 JSON_INFO := "{\"id\":\"$(APP_ID)\",\"name\":\"$(APP_NAME)\",\"daemon_config_name\":\"manual_install\",\"version\":\"$(APP_VERSION)\",\"secret\":\"12345\",\"port\":9030}"
 
 
@@ -31,7 +31,7 @@ help:
 .PHONY: build-push
 build-push:
 	docker login ghcr.io
-	DOCKER_BUILDKIT=1 docker buildx build --push --platform linux/arm64/v8,linux/amd64 --tag ghcr.io/nextcloud/app-skeleton-python:latest .
+	DOCKER_BUILDKIT=1 docker buildx build --push --platform linux/arm64/v8,linux/amd64 --tag ghcr.io/nextcloud/text2speech_kokoro:latest .
 
 .PHONY: run30
 run29:

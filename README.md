@@ -1,6 +1,6 @@
-# Nextcloud Python App Skeleton repository
+# Nextcloud Kokoro Text2Speech App
 
-To make it easier to create new Nextcloud applications using Python,
-you can immediately either clone this repository or simply copy it and use it as the basis for your future application.
+An exapp that converts text to speech using [Kokoro](https://github.com/hexgrad/kokoro).
+Note currently only uses the af_heart voice (American english).
 
-By default, linters, pre-commit and other useful little things are configured here.
+**USE PYTHON 3.12!**
