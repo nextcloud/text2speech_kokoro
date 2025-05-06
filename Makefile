@@ -31,25 +31,25 @@ help:
 .PHONY: build-push
 build-push:
 	docker login ghcr.io
-	DOCKER_BUILDKIT=1 docker buildx build --push --platform linux/arm64/v8,linux/amd64 --tag ghcr.io/nextcloud/text2speech_kokoro:latest .
+	DOCKER_BUILDKIT=1 docker buildx build --push --platform linux/arm64/v8,linux/amd64 --tag ghcr.io/lukasdotcom/text2speech_kokoro:latest .
 
 .PHONY: run30
 run29:
 	docker exec master-stable30-1 sudo -u www-data php occ app_api:app:unregister $(APP_ID) --silent --force || true
 	docker exec master-stable30-1 sudo -u www-data php occ app_api:app:register $(APP_ID) \
-		--info-xml https://raw.githubusercontent.com/nextcloud/$(APP_ID)/main/appinfo/info.xml
+		--info-xml https://raw.githubusercontent.com/lukasdotcom/$(APP_ID)/main/appinfo/info.xml
 
 .PHONY: run31
 run30:
 	docker exec master-stable31-1 sudo -u www-data php occ app_api:app:unregister $(APP_ID) --silent --force || true
 	docker exec master-stable31-1 sudo -u www-data php occ app_api:app:register $(APP_ID) \
-		--info-xml https://raw.githubusercontent.com/nextcloud/$(APP_ID)/main/appinfo/info.xml
+		--info-xml https://raw.githubusercontent.com/lukasdotcom/$(APP_ID)/main/appinfo/info.xml
 
 .PHONY: run
 run:
 	docker exec master-nextcloud-1 sudo -u www-data php occ app_api:app:unregister $(APP_ID) --silent --force || true
 	docker exec master-nextcloud-1 sudo -u www-data php occ app_api:app:register $(APP_ID) \
-		--info-xml https://raw.githubusercontent.com/nextcloud/$(APP_ID)/main/appinfo/info.xml
+		--info-xml https://raw.githubusercontent.com/lukasdotcom/$(APP_ID)/main/appinfo/info.xml
 
 .PHONY: register30
 register30:
