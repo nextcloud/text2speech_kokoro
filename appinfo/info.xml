@@ -4,7 +4,21 @@
     <name>App Skeleton</name>
     <summary>Kokoro Text2Speech</summary>
     <description>
-        <![CDATA[Text to speech using Kokoro]]>
+        <![CDATA[
+Kokoro Text2Speech is a Nextcloud app that provides an AI capable of converting text to speech using various voices and languages.
+
+This app is built on top of the [Kokoro](https://github.com/hexgrad/kokoro) AI model.
+
+## Ethical AI Rating
+
+### Rating: 🟢
+
+Positive:
+
+* The software for training and inferencing of this model is open source
+* The trained model is freely available, and thus can be ran on-premises
+* The training data is freely available, making it possible to check or correct for bias or optimise the performance and CO2 usage.
+]]>
     </description>
     <version>1.0.0</version>
     <licence>MIT</licence>
