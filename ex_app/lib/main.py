@@ -1,20 +1,33 @@
+"""Kokoro Text2Speech App
+
+Module is part of the Nextcloud Kokoro Text2Speech App. It contains the main functionality for converting text to
+speech using various voices and languages. The app integrates with Nextcloud, allowing task processing for
+text-to-speech conversion, and utilizes libraries such as soundfile and torch for audio processing. The application is
+built to run within a Docker container and can be managed and executed through specific makefile targets. The main
+components include background task processing, Nextcloud application lifecycle management, and voice generation.
+"""
+
 import asyncio
-import os
 import io
+import logging
+import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 from threading import Event, Thread
-from time import sleep, perf_counter
-import logging
+from time import perf_counter, sleep
+
 import soundfile as sf
 import torch
-
 from fastapi import FastAPI
+from kokoro import KPipeline
 from nc_py_api import NextcloudApp
 from nc_py_api.ex_app import AppAPIAuthMiddleware, LogLvl, run_app, set_handlers
-from nc_py_api.ex_app.providers.task_processing import TaskProcessingProvider, ShapeType, ShapeDescriptor, \
-    ShapeEnumValue
-from kokoro import KPipeline
+from nc_py_api.ex_app.providers.task_processing import (
+    ShapeDescriptor,
+    ShapeEnumValue,
+    ShapeType,
+    TaskProcessingProvider,
+)
 
 VOICE_DESCRIPTIONS = {
     "af_heart": "Heart (American Female)",
@@ -71,11 +84,14 @@ VOICE_DESCRIPTIONS = {
     "im_nicola": "Nicola (Italiano Maschile)",  # Italian Male
     "pf_dora": "Dora (Português Brasileiro Feminino)",  # Brazilian Portuguese Female
     "pm_alex": "Alex (Português Brasileiro Masculino)",  # Brazilian Portuguese Male
-    "pm_santa": "Santa (Português Brasileiro Masculino)"  # Brazilian Portuguese Male
+    "pm_santa": "Santa (Português Brasileiro Masculino)",  # Brazilian Portuguese Male
 }
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                    handlers=[logging.StreamHandler()])
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    handlers=[logging.StreamHandler()],
+)
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
@@ -86,19 +102,16 @@ def log(nc, level, content):
         return
     try:
         asyncio.run(nc.log(level, content))
-    except:
-        pass
+    except Exception:
+        logger.exception("Failed to log to Nextcloud")
 
 
-TASKPROCESSING_PROVIDER_ID = 'text2speech_kokoro'
+TASKPROCESSING_PROVIDER_ID = "text2speech_kokoro"
 
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
-    set_handlers(
-        APP,
-        enabled_handler
-    )
+    set_handlers(APP, enabled_handler)
     nc = NextcloudApp()
     if nc.enabled_state:
         app_enabled.set()
@@ -124,11 +137,11 @@ def background_thread_task():
             sleep(30)
             continue
         try:
-            next_task = nc.providers.task_processing.next_task([TASKPROCESSING_PROVIDER_ID], ['core:text2speech'])
-            if 'task' not in next_task or next_task is None:
+            next_task = nc.providers.task_processing.next_task([TASKPROCESSING_PROVIDER_ID], ["core:text2speech"])
+            if "task" not in next_task or next_task is None:
                 sleep(5)
                 continue
-            task = next_task.get('task')
+            task = next_task.get("task")
         except Exception as e:
             print(str(e))
             log(nc, LogLvl.ERROR, str(e))
@@ -136,10 +149,10 @@ def background_thread_task():
             continue
         try:
             log(nc, LogLvl.INFO, f"Next task: {task['id']}")
-            prompt = task.get("input").get('input')
-            voice = task.get("input").get('voice') or 'af_heart'  # Use 'af_heart' if voice is not specified
+            prompt = task.get("input").get("input")
+            voice = task.get("input").get("voice") or "af_heart"  # Use 'af_heart' if voice is not specified
             lang_code = voice[0]
-            speed = task.get("input").get('speed') or 1
+            speed = task.get("input").get("speed") or 1
 
             log(nc, LogLvl.INFO, "generating speech with voice: " + voice + " and speed: " + str(speed))
             time_start = perf_counter()
@@ -155,21 +168,21 @@ def background_thread_task():
             log(nc, LogLvl.INFO, f"speech generated: {perf_counter() - time_start}s")
 
             speech_stream = io.BytesIO()
-            speech_stream.name = 'speech.wav'
+            speech_stream.name = "speech.wav"
             sf.write(speech_stream, speech, 24000)
-            speech_id = nc.providers.task_processing.upload_result_file(task.get('id'), speech_stream)
+            speech_id = nc.providers.task_processing.upload_result_file(task.get("id"), speech_stream)
 
             NextcloudApp().providers.task_processing.report_result(
                 task["id"],
-                {'speech': speech_id},
+                {"speech": speech_id},
             )
         except Exception as e:  # noqa
             print(str(e))
             try:
                 log(nc, LogLvl.ERROR, str(e))
                 nc.providers.task_processing.report_result(task["id"], None, str(e))
-            except:
-                pass
+            except Exception:
+                log(nc, LogLvl.ERROR, "Failed to report error in task result")
             sleep(30)
 
 
@@ -182,30 +195,23 @@ async def enabled_handler(enabled: bool, nc: NextcloudApp) -> str:
     # This will be called each time application is `enabled` or `disabled`
     # NOTE: `user` is unavailable on this step, so all NC API calls that require it will fail as unauthorized.
     if enabled:
-        voice_enum_values = [ShapeEnumValue(name=voice_description, value=voice_name) for
-                             voice_name, voice_description in VOICE_DESCRIPTIONS.items()]
-        await nc.providers.task_processing.register(TaskProcessingProvider(id=TASKPROCESSING_PROVIDER_ID,
-                                                                           name="Nextcloud local text to speech",
-                                                                           task_type="core:text2speech",
-                                                                           optional_input_shape=[
-                                                                               ShapeDescriptor(
-                                                                                   name="voice",
-                                                                                   description="Voice to use",
-                                                                                   shape_type=ShapeType.ENUM),
-                                                                               ShapeDescriptor(
-                                                                                   name="speed",
-                                                                                   description="Speech speed modifier",
-                                                                                   shape_type=ShapeType.NUMBER),
-                                                                           ],
-                                                                           optional_input_shape_enum_values={
-                                                                               "voice": voice_enum_values
-                                                                           },
-                                                                           input_shape_defaults={
-                                                                               "voice": "af_heart",
-                                                                               "speed": 1
-                                                                           }
-                                                                           )
-                                                    )
+        voice_enum_values = [
+            ShapeEnumValue(name=voice_description, value=voice_name)
+            for voice_name, voice_description in VOICE_DESCRIPTIONS.items()
+        ]
+        await nc.providers.task_processing.register(
+            TaskProcessingProvider(
+                id=TASKPROCESSING_PROVIDER_ID,
+                name="Nextcloud local text to speech",
+                task_type="core:text2speech",
+                optional_input_shape=[
+                    ShapeDescriptor(name="voice", description="Voice to use", shape_type=ShapeType.ENUM),
+                    ShapeDescriptor(name="speed", description="Speech speed modifier", shape_type=ShapeType.NUMBER),
+                ],
+                optional_input_shape_enum_values={"voice": voice_enum_values},
+                input_shape_defaults={"voice": "af_heart", "speed": 1},
+            )
+        )
         await nc.log(LogLvl.INFO, f"Hello from {nc.app_cfg.app_name} :)")
         app_enabled.set()
     else:
