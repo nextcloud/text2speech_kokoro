@@ -45,32 +45,33 @@ VOICE_DESCRIPTIONS = {
     "bm_fable": "Fable (British Male)",
     "bm_george": "George (British Male)",
     "bm_lewis": "Lewis (British Male)",
-    "jf_alpha": "Alpha (Japanese Female)",
-    "jf_gongitsune": "Gongitsune (Japanese Female)",
-    "jf_nezumi": "Nezumi (Japanese Female)",
-    "jf_tebukuro": "Tebukuro (Japanese Female)",
-    "jm_kumo": "Kumo (Japanese Male)",
-    "zf_xiaobei": "Xiaobei (Mandarin Chinese Female)",
-    "zf_xiaoni": "Xiaoni (Mandarin Chinese Female)",
-    "zf_xiaoxiao": "Xiaoxiao (Mandarin Chinese Female)",
-    "zf_xiaoyi": "Xiaoyi (Mandarin Chinese Female)",
-    "zm_yunjian": "Yunjian (Mandarin Chinese Male)",
-    "zm_yunxi": "Yunxi (Mandarin Chinese Male)",
-    "zm_yunxia": "Yunxia (Mandarin Chinese Male)",
-    "zm_yunyang": "Yunyang (Mandarin Chinese Male)",
-    "ef_dora": "Dora (Spanish Female)",
-    "em_alex": "Alex (Spanish Male)",
-    "em_santa": "Santa (Spanish Male)",
-    "ff_siwis": "Siwis (French Female)",
-    "hf_alpha": "Alpha (Hindi Female)",
-    "hf_beta": "Beta (Hindi Female)",
-    "hm_omega": "Omega (Hindi Male)",
-    "hm_psi": "Psi (Hindi Male)",
-    "if_sara": "Sara (Italian Female)",
-    "im_nicola": "Nicola (Italian Male)",
-    "pf_dora": "Dora (Brazilian Portuguese Female)",
-    "pm_alex": "Alex (Brazilian Portuguese Male)",
-    "pm_santa": "Santa (Brazilian Portuguese Male)"
+    # Translated with Google Translate
+    "jf_alpha": "Alpha (日本語 女性)",  # Japanese Female
+    "jf_gongitsune": "Gongitsune (日本語 女性)",  # Japanese Female
+    "jf_nezumi": "Nezumi (日本語 女性)",  # Japanese Female
+    "jf_tebukuro": "Tebukuro (日本語 女性)",  # Japanese Female
+    "jm_kumo": "Kumo (日本語 男性)",  # Japanese Male
+    "zf_xiaobei": "Xiaobei (普通话 女性)",  # Mandarin Chinese Female
+    "zf_xiaoni": "Xiaoni (普通话 女性)",  # Mandarin Chinese Female
+    "zf_xiaoxiao": "Xiaoxiao (普通话 女性)",  # Mandarin Chinese Female
+    "zf_xiaoyi": "Xiaoyi (普通话 女性)",  # Mandarin Chinese Female
+    "zm_yunjian": "Yunjian (普通话 男性)",  # Mandarin Chinese Male
+    "zm_yunxi": "Yunxi (普通话 男性)",  # Mandarin Chinese Male
+    "zm_yunxia": "Yunxia (普通话 男性)",  # Mandarin Chinese Male
+    "zm_yunyang": "Yunyang (普通话 男性)",  # Mandarin Chinese Male
+    "ef_dora": "Dora (Español Femenino)",  # Spanish Female
+    "em_alex": "Alex (Español Masculino)",  # Spanish Male
+    "em_santa": "Santa (Español Masculino)",  # Spanish Male
+    "ff_siwis": "Siwis (Français Féminin)",  # French Female
+    "hf_alpha": "Alpha (हिन्दी महिला)",  # Hindi Female
+    "hf_beta": "Beta (हिन्दी महिला)",  # Hindi Female
+    "hm_omega": "Omega (हिन्दी पुरुष)",  # Hindi Male
+    "hm_psi": "Psi (हिन्दी पुरुष)",  # Hindi Male
+    "if_sara": "Sara (Italiano Femminile)",  # Italian Female
+    "im_nicola": "Nicola (Italiano Maschile)",  # Italian Male
+    "pf_dora": "Dora (Português Brasileiro Feminino)",  # Brazilian Portuguese Female
+    "pm_alex": "Alex (Português Brasileiro Masculino)",  # Brazilian Portuguese Male
+    "pm_santa": "Santa (Português Brasileiro Masculino)"  # Brazilian Portuguese Male
 }
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -186,18 +187,16 @@ async def enabled_handler(enabled: bool, nc: NextcloudApp) -> str:
         await nc.providers.task_processing.register(TaskProcessingProvider(id=TASKPROCESSING_PROVIDER_ID,
                                                                            name="Nextcloud local text to speech",
                                                                            task_type="core:text2speech",
-                                                                           optional_input_shape={
-                                                                               "voice":
-                                                                                   ShapeDescriptor(
-                                                                                       name="voice",
-                                                                                       description="Voice to use",
-                                                                                       shape_type=ShapeType.ENUM),
-                                                                               "speed":
-                                                                                   ShapeDescriptor(
-                                                                                       name="speed",
-                                                                                       description="Speech speed modifier",
-                                                                                       shape_type=ShapeType.NUMBER),
-                                                                           },
+                                                                           optional_input_shape=[
+                                                                               ShapeDescriptor(
+                                                                                   name="voice",
+                                                                                   description="Voice to use",
+                                                                                   shape_type=ShapeType.ENUM),
+                                                                               ShapeDescriptor(
+                                                                                   name="speed",
+                                                                                   description="Speech speed modifier",
+                                                                                   shape_type=ShapeType.NUMBER),
+                                                                           ],
                                                                            optional_input_shape_enum_values={
                                                                                "voice": voice_enum_values
                                                                            },
