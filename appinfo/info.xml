@@ -23,7 +23,7 @@ Negative:
 ]]>
     </description>
     <version>1.0.0</version>
-    <licence>MIT</licence>
+    <licence>agpl</licence>
     <author mail="lukas@lschaefer.xyz" homepage="https://github.com/lukasdotcom">Lukas Schaefer</author>
     <namespace>text2speech_kokoro</namespace>
     <category>ai</category>
