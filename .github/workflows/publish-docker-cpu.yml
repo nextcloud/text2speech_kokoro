@@ -1,7 +1,8 @@
 name: Publish CPU Image
 
 on:
-  workflow_dispatch:
+  release:
+    types: [ published ]
 
 jobs:
   push_to_registry:
