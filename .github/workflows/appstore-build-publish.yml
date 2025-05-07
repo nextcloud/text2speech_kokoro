@@ -149,8 +149,7 @@ jobs:
           # Rebuilding archive
           cd ${{ env.APP_NAME }}/build/artifacts
           tar -zcvf ${{ env.APP_NAME }}.tar.gz ${{ env.APP_NAME }}
-      - name: Debug file path
-        run: ls -l ${{ env.APP_NAME }}/build/artifacts/
+
       - name: Attach tarball to github release
         uses: svenstaro/upload-release-action@133984371c30d34e38222a64855679a414cb7575 # v2
         id: attach_to_release
