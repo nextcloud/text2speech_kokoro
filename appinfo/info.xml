@@ -26,7 +26,7 @@ Negative:
     <licence>MIT</licence>
     <author mail="lukas@lschaefer.xyz" homepage="https://github.com/lukasdotcom">Lukas Schaefer</author>
     <namespace>text2speech_kokoro</namespace>
-    <category>tools</category>
+    <category>ai</category>
     <website>https://github.com/nextcloud/text2speech_kokoro</website>
     <bugs>https://github.com/nextcloud/text2speech_kokoro/issues</bugs>
     <repository type="git">https://github.com/nextcloud/text2speech_kokoro</repository>
