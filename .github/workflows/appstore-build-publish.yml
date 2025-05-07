@@ -12,6 +12,9 @@ on:
 env:
   PHP_VERSION: 8.1
 
+permissions:
+  contents: write
+
 jobs:
   build_and_publish:
     runs-on: ubuntu-latest
@@ -121,9 +124,8 @@ jobs:
         continue-on-error: true
         id: server-checkout
         run: |
-          NCVERSION=${{ fromJSON(steps.appinfo.outputs.result).nextcloud.min-version }}
-          wget --quiet https://download.nextcloud.com/server/releases/latest-$NCVERSION.zip
-          unzip latest-$NCVERSION.zip
+          wget --quiet https://download.nextcloud.com/server/releases/latest-${{ fromJSON(steps.appinfo.outputs.result).nextcloud.min-version }}.zip
+          unzip latest-${{ fromJSON(steps.appinfo.outputs.result).nextcloud.min-version }}.zip
 
       - name: Checkout server master fallback
         uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # v3
@@ -147,7 +149,8 @@ jobs:
           # Rebuilding archive
           cd ${{ env.APP_NAME }}/build/artifacts
           tar -zcvf ${{ env.APP_NAME }}.tar.gz ${{ env.APP_NAME }}
-
+      - name: Debug file path
+        run: ls -l ${{ env.APP_NAME }}/build/artifacts/
       - name: Attach tarball to github release
         uses: svenstaro/upload-release-action@133984371c30d34e38222a64855679a414cb7575 # v2
         id: attach_to_release
