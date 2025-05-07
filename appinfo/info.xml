@@ -11,12 +11,14 @@ This app is built on top of the [Kokoro](https://github.com/hexgrad/kokoro) AI m
 
 ## Ethical AI Rating
 
-### Rating: 🟢
+### Rating: 🟡
 
 Positive:
 
 * The software for training and inferencing of this model is open source
 * The trained model is freely available, and thus can be ran on-premises
+
+Negative:
 * The training data is freely available, making it possible to check or correct for bias or optimise the performance and CO2 usage.
 ]]>
     </description>
@@ -35,7 +37,7 @@ Positive:
         <docker-install>
             <registry>ghcr.io</registry>
             <image>lukasdotcom/text2speech_kokoro</image>
-            <image-tag>latest</image-tag>
+            <image-tag>1.0.0</image-tag>
         </docker-install>
     </external-app>
 </info>

@@ -17,6 +17,9 @@ Positive:
 
 * The software for training and inferencing of this model is open source
 * The trained model is freely available, and thus can be ran on-premises
+
+Negative:
+
 * The training data is freely available, making it possible to check or correct for bias or optimise the performance and
   CO2 usage.
 
