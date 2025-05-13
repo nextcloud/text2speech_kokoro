@@ -31,7 +31,7 @@ Negative:
     <bugs>https://github.com/lukasdotcom/text2speech_kokoro/issues</bugs>
     <repository type="git">https://github.com/lukasdotcom/text2speech_kokoro</repository>
     <dependencies>
-        <nextcloud min-version="32" max-version="32"/>
+        <nextcloud min-version="30" max-version="32"/>
     </dependencies>
     <external-app>
         <docker-install>

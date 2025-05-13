@@ -26,7 +26,7 @@ from nc_py_api.ex_app.providers.task_processing import (
     ShapeDescriptor,
     ShapeEnumValue,
     ShapeType,
-    TaskProcessingProvider,
+    TaskProcessingProvider, TaskType,
 )
 
 VOICE_DESCRIPTIONS = {
@@ -123,6 +123,7 @@ APP = FastAPI(lifespan=lifespan)
 APP.add_middleware(AppAPIAuthMiddleware)  # set global AppAPI authentication middleware
 
 app_enabled = Event()
+TASKPROCESSING_TYPE = "core:text2speech"
 
 
 def background_thread_task():
@@ -137,7 +138,7 @@ def background_thread_task():
             sleep(30)
             continue
         try:
-            next_task = nc.providers.task_processing.next_task([TASKPROCESSING_PROVIDER_ID], ["core:text2speech"])
+            next_task = nc.providers.task_processing.next_task([TASKPROCESSING_PROVIDER_ID], [TASKPROCESSING_TYPE])
             if "task" not in next_task or next_task is None:
                 sleep(5)
                 continue
@@ -192,6 +193,7 @@ def start_bg_task():
 
 
 async def enabled_handler(enabled: bool, nc: NextcloudApp) -> str:
+    global TASKPROCESSING_TYPE
     # This will be called each time application is `enabled` or `disabled`
     # NOTE: `user` is unavailable on this step, so all NC API calls that require it will fail as unauthorized.
     if enabled:
@@ -199,18 +201,36 @@ async def enabled_handler(enabled: bool, nc: NextcloudApp) -> str:
             ShapeEnumValue(name=voice_description, value=voice_name)
             for voice_name, voice_description in VOICE_DESCRIPTIONS.items()
         ]
+        new_task_type = None
+        TASKPROCESSING_TYPE = "core:text2speech"
+        # Check if Nextcloud version is less than 32 to create a custom task type when needed
+        if (await nc.srv_version).get('major') < 32:
+            await nc.log(LogLvl.INFO, f"Creating custom task type for {nc.app_cfg.app_name}")
+            new_task_type = TaskType(
+                id="kokoro:text2speech",
+                name="Text to speech",
+                description="Text to speech",
+                input_shape=[
+                    ShapeDescriptor(name="input", description="Prompt", shape_type=ShapeType.TEXT),
+                ],
+                output_shape=[
+                    ShapeDescriptor(name="speech", description="Output speech", shape_type=ShapeType.AUDIO),
+                ]
+            )
+            TASKPROCESSING_TYPE = "kokoro:text2speech"
         await nc.providers.task_processing.register(
             TaskProcessingProvider(
                 id=TASKPROCESSING_PROVIDER_ID,
-                name="Nextcloud local text to speech",
-                task_type="core:text2speech",
+                name="Kokoro local text to speech",
+                task_type=TASKPROCESSING_TYPE,
                 optional_input_shape=[
                     ShapeDescriptor(name="voice", description="Voice to use", shape_type=ShapeType.ENUM),
                     ShapeDescriptor(name="speed", description="Speech speed modifier", shape_type=ShapeType.NUMBER),
                 ],
                 optional_input_shape_enum_values={"voice": voice_enum_values},
                 input_shape_defaults={"voice": "af_heart", "speed": 1},
-            )
+            ),
+            new_task_type
         )
         await nc.log(LogLvl.INFO, f"Hello from {nc.app_cfg.app_name} :)")
         app_enabled.set()

@@ -11,7 +11,7 @@ This app is built on top of the [Kokoro](https://github.com/hexgrad/kokoro) AI m
 
 ## Ethical AI Rating
 
-### Rating: 🟢
+### Rating: 🟡
 
 Positive:
 
