@@ -22,13 +22,13 @@ Negative:
 * The training data is freely available, making it possible to check or correct for bias or optimise the performance and CO2 usage.
 ]]>
     </description>
-    <version>1.0.2</version>
+    <version>1.1.0</version>
     <licence>agpl</licence>
     <author mail="lukas@lschaefer.xyz" homepage="https://github.com/lukasdotcom">Lukas Schaefer</author>
     <namespace>text2speech_kokoro</namespace>
     <category>ai</category>
-    <website>https://github.com/lukasdotcom/text2speech_kokoro</website>
-    <bugs>https://github.com/lukasdotcom/text2speech_kokoro/issues</bugs>
+    <website>https://github.com/nextcloud/text2speech_kokoro</website>
+    <bugs>https://github.com/nextcloud/text2speech_kokoro/issues</bugs>
     <repository type="git">https://github.com/lukasdotcom/text2speech_kokoro</repository>
     <dependencies>
         <nextcloud min-version="30" max-version="32"/>
@@ -36,8 +36,8 @@ Negative:
     <external-app>
         <docker-install>
             <registry>ghcr.io</registry>
-            <image>lukasdotcom/text2speech_kokoro</image>
-            <image-tag>1.0.2</image-tag>
+            <image>nextcloud/text2speech_kokoro</image>
+            <image-tag>1.1.0</image-tag>
         </docker-install>
     </external-app>
 </info>
