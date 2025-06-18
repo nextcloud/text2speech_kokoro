@@ -1,14 +1,13 @@
 name: Publish CPU Image
 
 on:
-  release:
-    types: [ published ]
+  workflow_dispatch:
 
 jobs:
   push_to_registry:
     name: Build image
     runs-on: ubuntu-22.04
-    if: ${{ github.repository_owner == 'lukasdotcom' }}
+    if: ${{ github.repository_owner == 'nextcloud' }}
     permissions:
       packages: write
       contents: read
