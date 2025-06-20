@@ -20,8 +20,8 @@ Positive:
 
 Negative:
 
-* The training data is freely available, making it possible to check or correct for bias or optimise the performance and
-  CO2 usage.
+* The training data isn't freely available, making it not possible to check or correct for bias or optimise the
+  performance and CO2 usage.
 
 ## Running outside of Docker
 
