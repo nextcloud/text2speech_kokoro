@@ -107,12 +107,16 @@ def log(nc, level, content):
 
 
 TASKPROCESSING_PROVIDER_ID = "text2speech_kokoro"
+TASKPROCESSING_TYPE = "core:text2speech"
 
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
+    global TASKPROCESSING_TYPE
     set_handlers(APP, enabled_handler)
     nc = NextcloudApp()
+    if nc.srv_version.get('major') < 32:
+        TASKPROCESSING_TYPE = "kokoro:text2speech"
     if nc.enabled_state:
         app_enabled.set()
     start_bg_task()
@@ -123,7 +127,6 @@ APP = FastAPI(lifespan=lifespan)
 APP.add_middleware(AppAPIAuthMiddleware)  # set global AppAPI authentication middleware
 
 app_enabled = Event()
-TASKPROCESSING_TYPE = "core:text2speech"
 
 
 def background_thread_task():
