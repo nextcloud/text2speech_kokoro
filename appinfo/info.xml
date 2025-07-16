@@ -37,7 +37,7 @@ Negative:
         <docker-install>
             <registry>ghcr.io</registry>
             <image>nextcloud/text2speech_kokoro</image>
-            <image-tag>1.1.0</image-tag>
+            <image-tag>1.1.1</image-tag>
         </docker-install>
     </external-app>
 </info>
