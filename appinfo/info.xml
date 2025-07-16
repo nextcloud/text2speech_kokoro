@@ -22,7 +22,7 @@ Negative:
 * The training data isn't freely available, making it not possible to check or correct for bias or optimise the performance and CO2 usage.
 ]]>
     </description>
-    <version>1.1.0</version>
+    <version>1.1.1</version>
     <licence>agpl</licence>
     <author mail="lukas@lschaefer.xyz" homepage="https://github.com/lukasdotcom">Lukas Schaefer</author>
     <namespace>text2speech_kokoro</namespace>
