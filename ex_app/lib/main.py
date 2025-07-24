@@ -12,15 +12,18 @@ import io
 import logging
 import os
 from contextlib import asynccontextmanager
+from json import JSONDecodeError
 from pathlib import Path
 from threading import Event, Thread
 from time import perf_counter, sleep
+import traceback
 
+import httpx
 import soundfile as sf
 import torch
 from fastapi import FastAPI
 from kokoro import KPipeline
-from nc_py_api import NextcloudApp
+from nc_py_api import NextcloudApp, NextcloudException
 from nc_py_api.ex_app import AppAPIAuthMiddleware, LogLvl, run_app, set_handlers
 from nc_py_api.ex_app.providers.task_processing import (
     ShapeDescriptor,
@@ -115,7 +118,7 @@ async def lifespan(_app: FastAPI):
     global TASKPROCESSING_TYPE
     set_handlers(APP, enabled_handler)
     nc = NextcloudApp()
-    if nc.srv_version.get('major') < 32:
+    if nc.srv_version.get("major") < 32:
         TASKPROCESSING_TYPE = "kokoro:text2speech"
     if nc.enabled_state:
         app_enabled.set()
@@ -146,48 +149,70 @@ def background_thread_task():
                 sleep(5)
                 continue
             task = next_task.get("task")
-        except Exception as e:
-            print(str(e))
-            log(nc, LogLvl.ERROR, str(e))
-            sleep(30)
+        except (NextcloudException, JSONDecodeError) as e:
+            tb_str = "".join(traceback.format_exception(e))
+            log(nc, LogLvl.WARNING, f"Error fetching the next task {tb_str}")
+            sleep(5)
             continue
+        except (
+                httpx.RemoteProtocolError,
+                httpx.ReadError,
+                httpx.LocalProtocolError,
+                httpx.PoolTimeout,
+        ) as e:
+            tb_str = "".join(traceback.format_exception(e))
+            log(nc, LogLvl.DEBUG, f"Ignored error during task polling {tb_str}")
+            sleep(2)
+            continue
+        pipes = handle_task(nc, task, pipes)
+
+
+def handle_task(nc, task, pipes):
+    try:
+        log(nc, LogLvl.INFO, f"Next task: {task['id']}")
+        prompt = task.get("input").get("input")
+        voice = task.get("input").get("voice") or "af_heart"  # Use 'af_heart' if voice is not specified
+        lang_code = voice[0]
+        speed = task.get("input").get("speed") or 1
+
+        log(nc, LogLvl.INFO, "generating speech with voice: " + voice + " and speed: " + str(speed))
+        time_start = perf_counter()
+        pipe = pipes.get(lang_code)
+        if pipe is None:
+            pipe = KPipeline(lang_code=lang_code)
+            pipes[lang_code] = pipe
+        generator = pipe(prompt, voice=voice, speed=speed)
+        speechs = []
+        for _, _, speech in generator:
+            speechs.append(speech)
+        speech = torch.cat(speechs, dim=0)
+        log(nc, LogLvl.INFO, f"speech generated: {perf_counter() - time_start}s")
+
+        speech_stream = io.BytesIO()
+        speech_stream.name = "speech.wav"
+        sf.write(speech_stream, speech, 24000)
         try:
-            log(nc, LogLvl.INFO, f"Next task: {task['id']}")
-            prompt = task.get("input").get("input")
-            voice = task.get("input").get("voice") or "af_heart"  # Use 'af_heart' if voice is not specified
-            lang_code = voice[0]
-            speed = task.get("input").get("speed") or 1
-
-            log(nc, LogLvl.INFO, "generating speech with voice: " + voice + " and speed: " + str(speed))
-            time_start = perf_counter()
-            pipe = pipes.get(lang_code)
-            if pipe is None:
-                pipe = KPipeline(lang_code=lang_code)
-                pipes[lang_code] = pipe
-            generator = pipe(prompt, voice=voice, speed=speed)
-            speechs = []
-            for _, _, speech in generator:
-                speechs.append(speech)
-            speech = torch.cat(speechs, dim=0)
-            log(nc, LogLvl.INFO, f"speech generated: {perf_counter() - time_start}s")
-
-            speech_stream = io.BytesIO()
-            speech_stream.name = "speech.wav"
-            sf.write(speech_stream, speech, 24000)
             speech_id = nc.providers.task_processing.upload_result_file(task.get("id"), speech_stream)
-
+        except Exception:
+            speech_id = nc.providers.task_processing.upload_result_file(task.get("id"), speech_stream)
+        try:
             NextcloudApp().providers.task_processing.report_result(
                 task["id"],
                 {"speech": speech_id},
             )
-        except Exception as e:  # noqa
-            print(str(e))
-            try:
-                log(nc, LogLvl.ERROR, str(e))
-                nc.providers.task_processing.report_result(task["id"], None, str(e))
-            except Exception:
-                log(nc, LogLvl.ERROR, "Failed to report error in task result")
-            sleep(30)
+        except Exception:
+            NextcloudApp().providers.task_processing.report_result(
+                task["id"],
+                {"speech": speech_id},
+            )
+    except Exception as e:  # noqa
+        print(str(e))
+        try:
+            log(nc, LogLvl.ERROR, str(e))
+            nc.providers.task_processing.report_result(task["id"], None, str(e))
+        except Exception:
+            log(nc, LogLvl.ERROR, "Failed to report error in task result")
+    return pipes
 
 
 def start_bg_task():
@@ -207,7 +232,7 @@ async def enabled_handler(enabled: bool, nc: NextcloudApp) -> str:
         new_task_type = None
         TASKPROCESSING_TYPE = "core:text2speech"
         # Check if Nextcloud version is less than 32 to create a custom task type when needed
-        if (await nc.srv_version).get('major') < 32:
+        if (await nc.srv_version).get("major") < 32:
             await nc.log(LogLvl.INFO, f"Creating custom task type for {nc.app_cfg.app_name}")
             new_task_type = TaskType(
                 id="kokoro:text2speech",
