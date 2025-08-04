@@ -24,7 +24,7 @@ import torch
 from fastapi import FastAPI
 from kokoro import KPipeline
 from nc_py_api import NextcloudApp, NextcloudException
-from nc_py_api.ex_app import AppAPIAuthMiddleware, LogLvl, run_app, set_handlers
+from nc_py_api.ex_app import AppAPIAuthMiddleware, LogLvl, run_app, set_handlers, get_computation_device
 from nc_py_api.ex_app.providers.task_processing import (
     ShapeDescriptor,
     ShapeEnumValue,
@@ -179,7 +179,10 @@ def handle_task(nc, task, pipes):
         time_start = perf_counter()
         pipe = pipes.get(lang_code)
         if pipe is None:
-            pipe = KPipeline(lang_code=lang_code)
+            device = get_computation_device().lower()
+            if device not in ("cpu", "cuda"):
+                device = "cpu"
+            pipe = KPipeline(lang_code=lang_code, device=device)
             pipes[lang_code] = pipe
         generator = pipe(prompt, voice=voice, speed=speed)
         speechs = []
