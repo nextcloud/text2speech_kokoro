@@ -2,7 +2,7 @@
 
 APP_ID := text2speech_kokoro
 APP_NAME := Kokoro
-APP_VERSION := 1.1.1
+APP_VERSION := 1.2.0
 JSON_INFO := "{\"id\":\"$(APP_ID)\",\"name\":\"$(APP_NAME)\",\"daemon_config_name\":\"manual_install\",\"version\":\"$(APP_VERSION)\",\"secret\":\"12345\",\"port\":9030}"
 
 
@@ -31,7 +31,7 @@ help:
 .PHONY: build-push
 build-push:
 	docker login ghcr.io
-	DOCKER_BUILDKIT=1 docker buildx build --push --platform linux/arm64/v8,linux/amd64 --tag ghcr.io/nextcloud/text2speech_kokoro:latest .
+	DOCKER_BUILDKIT=1 docker buildx build --push --platform linux/arm64/v8,linux/amd64 --tag ghcr.io/nextcloud/$(APP_ID):latest --tag ghcr.io/nextcloud/$(APP_ID):$(APP_VERSION) .
 
 .PHONY: run30
 run29:
