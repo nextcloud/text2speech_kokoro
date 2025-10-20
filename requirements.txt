@@ -1,5 +1,5 @@
-nc_py_api[app]>=0.19.2
-kokoro>=0.9.2
-soundfile
-misaki
-torch
+nc_py_api[app]==0.21.1
+kokoro==0.9.4
+soundfile==0.13.1
+misaki==0.9.4
+torch==2.9.0
