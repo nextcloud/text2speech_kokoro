@@ -116,7 +116,11 @@ taskprocessing_type = "core:text2speech"
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     global taskprocessing_type
-    set_handlers(APP, enabled_handler)
+    set_handlers(
+        APP,
+        enabled_handler,
+        trigger_handler=trigger_handler,
+    )
     nc = NextcloudApp()
     if nc.srv_version.get("major") < 32:
         taskprocessing_type = "kokoro:text2speech"
@@ -130,7 +134,9 @@ APP = FastAPI(lifespan=lifespan)
 APP.add_middleware(AppAPIAuthMiddleware)  # set global AppAPI authentication middleware
 
 app_enabled = Event()
-
+TRIGGER = Event()
+WAIT_INTERVAL = 5
+WAIT_INTERVAL_WITH_TRIGGER = 5 * 60
 
 def background_thread_task():
     nc = NextcloudApp()
@@ -146,20 +152,20 @@ def background_thread_task():
         try:
             next_task = nc.providers.task_processing.next_task([TASKPROCESSING_PROVIDER_ID], [taskprocessing_type])
             if "task" not in next_task or next_task is None:
-                sleep(5)
+                wait_for_task()
                 continue
             task = next_task.get("task")
         except (NextcloudException, JSONDecodeError) as e:
             tb_str = "".join(traceback.format_exception(e))
             log(nc, LogLvl.WARNING, f"Error fetching the next task {tb_str}")
-            sleep(5)
+            wait_for_task(10)
             continue
         except (
                 niquests.HTTPError
         ) as e:
             tb_str = "".join(traceback.format_exception(e))
             log(nc, LogLvl.DEBUG, f"Ignored error during task polling {tb_str}")
-            sleep(2)
+            wait_for_task(2)
             continue
         pipes = handle_task(nc, task, pipes)
 
@@ -269,6 +275,22 @@ async def enabled_handler(enabled: bool, nc: NextcloudApp) -> str:
     # In case of an error, a non-empty short string should be returned, which will be shown to the NC administrator.
     return ""
 
+# Will only be called on Nextcloud 33+
+def trigger_handler(providerId: str):
+    global TRIGGER
+    TRIGGER.set()
+
+# Wait for `interval` seconds or `WAIT_INTERVAL` if `interval` is not set
+# If `TRIGGER` gets set in the meantime, we override `WAIT_INTERVAL` with WAIT_INTERVAL_WITH_TRIGGER
+def wait_for_task(interval = None):
+    global TRIGGER
+    global WAIT_INTERVAL
+    global WAIT_INTERVAL_WITH_TRIGGER
+    if interval is None:
+        interval = WAIT_INTERVAL
+    if TRIGGER.wait(timeout=interval):
+        WAIT_INTERVAL = WAIT_INTERVAL_WITH_TRIGGER
+    TRIGGER.clear()
 
 if __name__ == "__main__":
     # Creates the storage directory for the models
