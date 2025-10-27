@@ -36,3 +36,4 @@ messages_control.disable = [
     "global-statement",
     "broad-exception-caught",
 ]
+variable-naming-style = "any"
