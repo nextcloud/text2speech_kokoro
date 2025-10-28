@@ -197,6 +197,7 @@ def handle_task(nc, task, pipes):
         speech_stream = io.BytesIO()
         speech_stream.name = "speech.wav"
         sf.write(speech_stream, speech, 24000)
+        speech_stream.seek(0)
         try:
             speech_id = nc.providers.task_processing.upload_result_file(task.get("id"), speech_stream)
         except Exception:
