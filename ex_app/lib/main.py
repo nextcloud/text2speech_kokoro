@@ -22,9 +22,10 @@ import niquests
 import soundfile as sf
 import torch
 from fastapi import FastAPI
-from kokoro import KPipeline
+from kokoro import KPipeline, KModel
 from nc_py_api import NextcloudApp, NextcloudException
-from nc_py_api.ex_app import AppAPIAuthMiddleware, LogLvl, run_app, set_handlers, get_computation_device
+from nc_py_api.ex_app import AppAPIAuthMiddleware, LogLvl, run_app, set_handlers, get_computation_device, \
+    persistent_storage
 from nc_py_api.ex_app.providers.task_processing import (
     ShapeDescriptor,
     ShapeEnumValue,
@@ -120,6 +121,7 @@ async def lifespan(_app: FastAPI):
         APP,
         enabled_handler,
         trigger_handler=trigger_handler,
+        models_to_fetch=models_to_fetch
     )
     nc = NextcloudApp()
     if nc.srv_version.get("major") < 32:
@@ -138,6 +140,13 @@ TRIGGER = Event()
 WAIT_INTERVAL = 5
 WAIT_INTERVAL_WITH_TRIGGER = 5 * 60
 
+REPO_ID = "Nextcloud-AI/Kokoro-82M"
+
+models_to_fetch = {
+    "https://huggingface.co/Nextcloud-AI/Kokoro-82M/resolve/main/kokoro-v1_0.pth": {
+        "save_path": os.path.join(persistent_storage(), "kokoro-v1_0.pth")},
+}
+
 
 def background_thread_task():
     nc = NextcloudApp()
@@ -145,6 +154,7 @@ def background_thread_task():
         sleep(5)
     print("Starting background task")
     pipes = {}  # Stores for each model a KPipeline instance
+    model = KModel(repo_id=REPO_ID, model=os.path.join(persistent_storage(), "kokoro-v1_0.pth"))
 
     while True:
         if not app_enabled.is_set():
@@ -168,10 +178,10 @@ def background_thread_task():
             log(nc, LogLvl.DEBUG, f"Ignored error during task polling {tb_str}")
             wait_for_task(2)
             continue
-        pipes = handle_task(nc, task, pipes)
+        pipes = handle_task(nc, task, pipes, model)
 
 
-def handle_task(nc, task, pipes):
+def handle_task(nc, task, pipes, model):
     try:
         log(nc, LogLvl.INFO, f"Next task: {task['id']}")
         prompt = task.get("input").get("input")
@@ -186,11 +196,10 @@ def handle_task(nc, task, pipes):
             device = get_computation_device().lower()
             if device not in ("cpu", "cuda"):
                 device = "cpu"
-            pipe = KPipeline(lang_code=lang_code, device=device)
+            pipe = KPipeline(lang_code=lang_code, device=device, repo_id=REPO_ID, model=model)
             pipes[lang_code] = pipe
-        generator = pipe(prompt, voice=voice, speed=speed)
         speechs = []
-        for _, _, speech in generator:
+        for _, _, speech in pipe(prompt, voice=voice, speed=speed):
             speechs.append(speech)
         speech = torch.cat(speechs, dim=0)
         log(nc, LogLvl.INFO, f"speech generated: {perf_counter() - time_start}s")
