@@ -110,12 +110,12 @@ def log(nc, level, content):
 
 
 TASKPROCESSING_PROVIDER_ID = "text2speech_kokoro"
-taskprocessing_type = "core:text2speech"
+TASKPROCESSING_TYPE = "core:text2speech"
 
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
-    global taskprocessing_type
+    global TASKPROCESSING_TYPE
     set_handlers(
         APP,
         enabled_handler,
@@ -123,7 +123,7 @@ async def lifespan(_app: FastAPI):
     )
     nc = NextcloudApp()
     if nc.srv_version.get("major") < 32:
-        taskprocessing_type = "kokoro:text2speech"
+        TASKPROCESSING_TYPE = "kokoro:text2speech"
     if nc.enabled_state:
         app_enabled.set()
     start_bg_task()
@@ -138,6 +138,7 @@ TRIGGER = Event()
 WAIT_INTERVAL = 5
 WAIT_INTERVAL_WITH_TRIGGER = 5 * 60
 
+
 def background_thread_task():
     nc = NextcloudApp()
     while not app_enabled.is_set():
@@ -150,7 +151,7 @@ def background_thread_task():
             sleep(30)
             continue
         try:
-            next_task = nc.providers.task_processing.next_task([TASKPROCESSING_PROVIDER_ID], [taskprocessing_type])
+            next_task = nc.providers.task_processing.next_task([TASKPROCESSING_PROVIDER_ID], [TASKPROCESSING_TYPE])
             if "task" not in next_task or next_task is None:
                 wait_for_task()
                 continue
@@ -228,7 +229,7 @@ def start_bg_task():
 
 
 async def enabled_handler(enabled: bool, nc: NextcloudApp) -> str:
-    global taskprocessing_type
+    global TASKPROCESSING_TYPE
     # This will be called each time application is `enabled` or `disabled`
     # NOTE: `user` is unavailable on this step, so all NC API calls that require it will fail as unauthorized.
     if enabled:
@@ -237,7 +238,7 @@ async def enabled_handler(enabled: bool, nc: NextcloudApp) -> str:
             for voice_name, voice_description in VOICE_DESCRIPTIONS.items()
         ]
         new_task_type = None
-        taskprocessing_type = "core:text2speech"
+        TASKPROCESSING_TYPE = "core:text2speech"
         # Check if Nextcloud version is less than 32 to create a custom task type when needed
         if (await nc.srv_version).get("major") < 32:
             await nc.log(LogLvl.INFO, f"Creating custom task type for {nc.app_cfg.app_name}")
@@ -252,12 +253,12 @@ async def enabled_handler(enabled: bool, nc: NextcloudApp) -> str:
                     ShapeDescriptor(name="speech", description="Output speech", shape_type=ShapeType.AUDIO),
                 ]
             )
-            taskprocessing_type = "kokoro:text2speech"
+            TASKPROCESSING_TYPE = "kokoro:text2speech"
         await nc.providers.task_processing.register(
             TaskProcessingProvider(
                 id=TASKPROCESSING_PROVIDER_ID,
                 name="Kokoro local text to speech",
-                task_type=taskprocessing_type,
+                task_type=TASKPROCESSING_TYPE,
                 optional_input_shape=[
                     ShapeDescriptor(name="voice", description="Voice to use", shape_type=ShapeType.ENUM),
                     ShapeDescriptor(name="speed", description="Speech speed modifier", shape_type=ShapeType.NUMBER),
@@ -276,22 +277,22 @@ async def enabled_handler(enabled: bool, nc: NextcloudApp) -> str:
     # In case of an error, a non-empty short string should be returned, which will be shown to the NC administrator.
     return ""
 
+
 # Will only be called on Nextcloud 33+
-def trigger_handler(providerId: str):
-    global TRIGGER
+def trigger_handler(_: str):
     TRIGGER.set()
+
 
 # Wait for `interval` seconds or `WAIT_INTERVAL` if `interval` is not set
 # If `TRIGGER` gets set in the meantime, we override `WAIT_INTERVAL` with WAIT_INTERVAL_WITH_TRIGGER
-def wait_for_task(interval = None):
-    global TRIGGER
+def wait_for_task(interval=None):
     global WAIT_INTERVAL
-    global WAIT_INTERVAL_WITH_TRIGGER
     if interval is None:
         interval = WAIT_INTERVAL
     if TRIGGER.wait(timeout=interval):
         WAIT_INTERVAL = WAIT_INTERVAL_WITH_TRIGGER
     TRIGGER.clear()
+
 
 if __name__ == "__main__":
     # Creates the storage directory for the models
