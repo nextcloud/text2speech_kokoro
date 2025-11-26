@@ -194,41 +194,7 @@ def handle_task(nc, task, pipes, model):
         lang_code = voice[0]
         speed = task.get("input").get("speed") or 1
 
-        log(nc, LogLvl.INFO, "generating speech with voice: " + voice + " and speed: " + str(speed))
-        time_start = perf_counter()
-        pipe = pipes.get(lang_code)
-        if pipe is None:
-            device = get_computation_device().lower()
-            if device not in ("cpu", "cuda"):
-                device = "cpu"
-            pipe = KPipeline(lang_code=lang_code, device=device, repo_id=REPO_ID, model=model)
-            pipes[lang_code] = pipe
-        speechs = []
-        for _, _, speech in pipe(prompt, voice=voice, speed=speed):
-            speechs.append(speech)
-        speech = torch.cat(speechs, dim=0)
-        log(nc, LogLvl.INFO, f"speech generated: {perf_counter() - time_start}s")
-
-        # export tensors to wave
-        speech_stream = io.BytesIO()
-        speech_stream.name = "speech.wav"
-        sf.write(speech_stream, speech, 24000)
-        speech_stream.seek(0)
-
-        # add metadata to wave
-        with tempfile.NamedTemporaryFile(suffix=".wav", delete=True) as tmp_file:
-            temp_filename = tmp_file.name
-            tmp_file.write(speech_stream.getvalue())
-            new_metadata = {
-                UnifiedMetadataKey.COMMENT: 'Generated using Artificial Intelligence',
-            }
-            update_metadata(temp_filename, new_metadata)
-
-            # Read the modified file back into a BytesIO stream
-            output_stream = io.BytesIO()
-            with open(temp_filename, "rb") as f:
-                output_stream.write(f.read())
-            output_stream.seek(0)
+        output_stream = generate_speech(lang_code, model, nc, pipes, prompt, speed, voice)
 
         try:
             speech_id = nc.providers.task_processing.upload_result_file(task.get("id"), output_stream)
@@ -252,6 +218,47 @@ def handle_task(nc, task, pipes, model):
         except Exception:
             log(nc, LogLvl.ERROR, "Failed to report error in task result")
     return pipes
+
+
+def generate_speech(lang_code, model, nc, pipes, prompt, speed, voice):
+    log(nc, LogLvl.INFO, "generating speech with voice: " + voice + " and speed: " + str(speed))
+    time_start = perf_counter()
+    pipe = pipes.get(lang_code)
+    if pipe is None:
+        device = get_computation_device().lower()
+        if device not in ("cpu", "cuda"):
+            device = "cpu"
+        pipe = KPipeline(lang_code=lang_code, device=device, repo_id=REPO_ID, model=model)
+        pipes[lang_code] = pipe
+    speechs = []
+    for _, _, speech in pipe(prompt, voice=voice, speed=speed):
+        speechs.append(speech)
+    speech = torch.cat(speechs, dim=0)
+    log(nc, LogLvl.INFO, f"speech generated: {perf_counter() - time_start}s")
+    # export tensors to wave
+    speech_stream = io.BytesIO()
+    speech_stream.name = "speech.wav"
+    sf.write(speech_stream, speech, 24000)
+    speech_stream.seek(0)
+    output_stream = add_metadata_to_audio(speech_stream)
+    return output_stream
+
+
+def add_metadata_to_audio(speech_stream):
+    with tempfile.NamedTemporaryFile(suffix=".wav", delete=True) as tmp_file:
+        temp_filename = tmp_file.name
+        tmp_file.write(speech_stream.getvalue())
+        new_metadata = {
+            UnifiedMetadataKey.COMMENT: 'Generated using Artificial Intelligence',
+        }
+        update_metadata(temp_filename, new_metadata)
+
+        # Read the modified file back into a BytesIO stream
+        output_stream = io.BytesIO()
+        with open(temp_filename, "rb") as f:
+            output_stream.write(f.read())
+        output_stream.seek(0)
+    return output_stream
 
 
 def start_bg_task():
