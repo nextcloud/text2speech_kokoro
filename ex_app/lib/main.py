@@ -11,12 +11,16 @@ import asyncio
 import io
 import logging
 import os
+import tempfile
 from contextlib import asynccontextmanager
 from json import JSONDecodeError
 from pathlib import Path
 from threading import Event, Thread
 from time import perf_counter, sleep
 import traceback
+from audiometa import update_metadata, UnifiedMetadataKey
+import static_ffmpeg
+static_ffmpeg.add_paths()
 
 import niquests
 import soundfile as sf
@@ -204,14 +208,31 @@ def handle_task(nc, task, pipes, model):
         speech = torch.cat(speechs, dim=0)
         log(nc, LogLvl.INFO, f"speech generated: {perf_counter() - time_start}s")
 
+        # export tensors to wave
         speech_stream = io.BytesIO()
         speech_stream.name = "speech.wav"
         sf.write(speech_stream, speech, 24000)
         speech_stream.seek(0)
+
+        # add metadata to wave
+        with tempfile.NamedTemporaryFile(suffix=".wav", delete=True) as tmp_file:
+            temp_filename = tmp_file.name
+            tmp_file.write(speech_stream.getvalue())
+            new_metadata = {
+                UnifiedMetadataKey.COMMENT: 'Generated using Artificial Intelligence',
+            }
+            update_metadata(temp_filename, new_metadata)
+
+            # Read the modified file back into a BytesIO stream
+            output_stream = io.BytesIO()
+            with open(temp_filename, "rb") as f:
+                output_stream.write(f.read())
+            output_stream.seek(0)
+
         try:
-            speech_id = nc.providers.task_processing.upload_result_file(task.get("id"), speech_stream)
+            speech_id = nc.providers.task_processing.upload_result_file(task.get("id"), output_stream)
         except Exception:
-            speech_id = nc.providers.task_processing.upload_result_file(task.get("id"), speech_stream)
+            speech_id = nc.providers.task_processing.upload_result_file(task.get("id"), output_stream)
         try:
             NextcloudApp().providers.task_processing.report_result(
                 task["id"],
