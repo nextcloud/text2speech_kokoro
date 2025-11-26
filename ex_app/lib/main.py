@@ -12,30 +12,31 @@ import io
 import logging
 import os
 import tempfile
+import traceback
 from contextlib import asynccontextmanager
 from json import JSONDecodeError
 from pathlib import Path
 from threading import Event, Thread
 from time import perf_counter, sleep
-import traceback
-from audiometa import update_metadata, UnifiedMetadataKey
-import static_ffmpeg
-static_ffmpeg.add_paths()
 
 import niquests
 import soundfile as sf
+import static_ffmpeg
 import torch
+from audiometa import UnifiedMetadataKey, update_metadata
 from fastapi import FastAPI
-from kokoro import KPipeline, KModel
+from kokoro import KModel, KPipeline
 from nc_py_api import NextcloudApp, NextcloudException
-from nc_py_api.ex_app import AppAPIAuthMiddleware, LogLvl, run_app, set_handlers, get_computation_device, \
-    persistent_storage
+from nc_py_api.ex_app import AppAPIAuthMiddleware, LogLvl, get_computation_device, persistent_storage, run_app, \
+    set_handlers
 from nc_py_api.ex_app.providers.task_processing import (
     ShapeDescriptor,
     ShapeEnumValue,
     ShapeType,
     TaskProcessingProvider, TaskType,
 )
+
+static_ffmpeg.add_paths()
 
 VOICE_DESCRIPTIONS = {
     "af_heart": "Heart (American Female)",
