@@ -202,7 +202,8 @@ def handle_task(nc, task, pipes, model):
             pipe = KPipeline(lang_code=lang_code, device=device, repo_id=REPO_ID, model=model)
             pipes[lang_code] = pipe
 
-        output_stream = generate_speech(nc, pipe, prompt, speed, voice)
+        speech_stream = generate_speech(nc, pipe, prompt, speed, voice)
+        output_stream = add_metadata_to_audio(speech_stream)
 
         try:
             speech_id = nc.providers.task_processing.upload_result_file(task.get("id"), output_stream)
@@ -231,7 +232,6 @@ def handle_task(nc, task, pipes, model):
 def generate_speech(nc, pipe, prompt, speed, voice):
     log(nc, LogLvl.INFO, "generating speech with voice: " + voice + " and speed: " + str(speed))
     time_start = perf_counter()
-    lang_code = voice[0]
 
     speechs = []
     for _, _, speech in pipe(prompt, voice=voice, speed=speed):
@@ -243,8 +243,7 @@ def generate_speech(nc, pipe, prompt, speed, voice):
     speech_stream.name = "speech.wav"
     sf.write(speech_stream, speech, 24000)
     speech_stream.seek(0)
-    output_stream = add_metadata_to_audio(speech_stream)
-    return output_stream
+    return speech_stream
 
 
 def add_metadata_to_audio(speech_stream):
