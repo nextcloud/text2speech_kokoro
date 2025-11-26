@@ -191,10 +191,18 @@ def handle_task(nc, task, pipes, model):
         log(nc, LogLvl.INFO, f"Next task: {task['id']}")
         prompt = task.get("input").get("input")
         voice = task.get("input").get("voice") or "af_heart"  # Use 'af_heart' if voice is not specified
-        lang_code = voice[0]
         speed = task.get("input").get("speed") or 1
+        lang_code = voice[0]
 
-        output_stream = generate_speech(lang_code, model, nc, pipes, prompt, speed, voice)
+        pipe = pipes.get(lang_code)
+        if pipe is None:
+            device = get_computation_device().lower()
+            if device not in ("cpu", "cuda"):
+                device = "cpu"
+            pipe = KPipeline(lang_code=lang_code, device=device, repo_id=REPO_ID, model=model)
+            pipes[lang_code] = pipe
+
+        output_stream = generate_speech(nc, pipe, prompt, speed, voice)
 
         try:
             speech_id = nc.providers.task_processing.upload_result_file(task.get("id"), output_stream)
@@ -220,16 +228,11 @@ def handle_task(nc, task, pipes, model):
     return pipes
 
 
-def generate_speech(lang_code, model, nc, pipes, prompt, speed, voice):
+def generate_speech(nc, pipe, prompt, speed, voice):
     log(nc, LogLvl.INFO, "generating speech with voice: " + voice + " and speed: " + str(speed))
     time_start = perf_counter()
-    pipe = pipes.get(lang_code)
-    if pipe is None:
-        device = get_computation_device().lower()
-        if device not in ("cpu", "cuda"):
-            device = "cpu"
-        pipe = KPipeline(lang_code=lang_code, device=device, repo_id=REPO_ID, model=model)
-        pipes[lang_code] = pipe
+    lang_code = voice[0]
+
     speechs = []
     for _, _, speech in pipe(prompt, voice=voice, speed=speed):
         speechs.append(speech)
