@@ -190,6 +190,8 @@ def handle_task(nc, task, pipes, model):
     try:
         log(nc, LogLvl.INFO, f"Next task: {task['id']}")
         prompt = task.get("input").get("input")
+        if task.get('includeWatermark', False):
+            prompt = f"{prompt}\n\nThis was generated using Artificial Intelligence."
         voice = task.get("input").get("voice") or "af_heart"  # Use 'af_heart' if voice is not specified
         speed = task.get("input").get("speed") or 1
         lang_code = voice[0]
