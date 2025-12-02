@@ -242,14 +242,14 @@ def generate_speech(nc, pipe, prompt, speed, voice):
     log(nc, LogLvl.INFO, f"speech generated: {perf_counter() - time_start}s")
     # export tensors to wave
     speech_stream = io.BytesIO()
-    speech_stream.name = "speech.wav"
-    sf.write(speech_stream, speech, 24000)
+    speech_stream.name = "speech.mp3" # WAV files with metadata cannot be played in firefox
+    sf.write(speech_stream, speech, 24000, format='MP3')
     speech_stream.seek(0)
     return speech_stream
 
 
 def add_metadata_to_audio(speech_stream):
-    with tempfile.NamedTemporaryFile(suffix=".wav", delete=True) as tmp_file:
+    with tempfile.NamedTemporaryFile(suffix=".mp3", delete=True) as tmp_file:
         temp_filename = tmp_file.name
         tmp_file.write(speech_stream.getvalue())
         new_metadata = {
