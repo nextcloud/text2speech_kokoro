@@ -205,12 +205,13 @@ def handle_task(nc, task, pipes, model):
             pipes[lang_code] = pipe
 
         speech_stream = generate_speech(nc, pipe, prompt, speed, voice)
-        output_stream = add_metadata_to_audio(speech_stream)
+        if task.get('includeWatermark', False):
+            speech_stream = add_metadata_to_audio(speech_stream)
 
         try:
-            speech_id = nc.providers.task_processing.upload_result_file(task.get("id"), output_stream)
+            speech_id = nc.providers.task_processing.upload_result_file(task.get("id"), speech_stream)
         except Exception:
-            speech_id = nc.providers.task_processing.upload_result_file(task.get("id"), output_stream)
+            speech_id = nc.providers.task_processing.upload_result_file(task.get("id"), speech_stream)
         try:
             NextcloudApp().providers.task_processing.report_result(
                 task["id"],
