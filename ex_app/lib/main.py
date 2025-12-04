@@ -11,27 +11,32 @@ import asyncio
 import io
 import logging
 import os
+import tempfile
+import traceback
 from contextlib import asynccontextmanager
 from json import JSONDecodeError
 from pathlib import Path
 from threading import Event, Thread
 from time import perf_counter, sleep
-import traceback
 
 import niquests
 import soundfile as sf
+import static_ffmpeg
 import torch
+from audiometa import UnifiedMetadataKey, update_metadata
 from fastapi import FastAPI
-from kokoro import KPipeline, KModel
+from kokoro import KModel, KPipeline
 from nc_py_api import NextcloudApp, NextcloudException
-from nc_py_api.ex_app import AppAPIAuthMiddleware, LogLvl, run_app, set_handlers, get_computation_device, \
-    persistent_storage
+from nc_py_api.ex_app import AppAPIAuthMiddleware, LogLvl, get_computation_device, persistent_storage, run_app, \
+    set_handlers
 from nc_py_api.ex_app.providers.task_processing import (
     ShapeDescriptor,
     ShapeEnumValue,
     ShapeType,
     TaskProcessingProvider, TaskType,
 )
+
+static_ffmpeg.add_paths()
 
 VOICE_DESCRIPTIONS = {
     "af_heart": "Heart (American Female)",
@@ -185,12 +190,12 @@ def handle_task(nc, task, pipes, model):
     try:
         log(nc, LogLvl.INFO, f"Next task: {task['id']}")
         prompt = task.get("input").get("input")
+        if task.get('includeWatermark', False):
+            prompt = f"{prompt}\n\nThis was generated using Artificial Intelligence."
         voice = task.get("input").get("voice") or "af_heart"  # Use 'af_heart' if voice is not specified
-        lang_code = voice[0]
         speed = task.get("input").get("speed") or 1
+        lang_code = voice[0]
 
-        log(nc, LogLvl.INFO, "generating speech with voice: " + voice + " and speed: " + str(speed))
-        time_start = perf_counter()
         pipe = pipes.get(lang_code)
         if pipe is None:
             device = get_computation_device().lower()
@@ -198,16 +203,11 @@ def handle_task(nc, task, pipes, model):
                 device = "cpu"
             pipe = KPipeline(lang_code=lang_code, device=device, repo_id=REPO_ID, model=model)
             pipes[lang_code] = pipe
-        speechs = []
-        for _, _, speech in pipe(prompt, voice=voice, speed=speed):
-            speechs.append(speech)
-        speech = torch.cat(speechs, dim=0)
-        log(nc, LogLvl.INFO, f"speech generated: {perf_counter() - time_start}s")
 
-        speech_stream = io.BytesIO()
-        speech_stream.name = "speech.wav"
-        sf.write(speech_stream, speech, 24000)
-        speech_stream.seek(0)
+        speech_stream = generate_speech(nc, pipe, prompt, speed, voice)
+        if task.get('includeWatermark', False):
+            speech_stream = add_metadata_to_audio(speech_stream)
+
         try:
             speech_id = nc.providers.task_processing.upload_result_file(task.get("id"), speech_stream)
         except Exception:
@@ -230,6 +230,40 @@ def handle_task(nc, task, pipes, model):
         except Exception:
             log(nc, LogLvl.ERROR, "Failed to report error in task result")
     return pipes
+
+
+def generate_speech(nc, pipe, prompt, speed, voice):
+    log(nc, LogLvl.INFO, "generating speech with voice: " + voice + " and speed: " + str(speed))
+    time_start = perf_counter()
+
+    speechs = []
+    for _, _, speech in pipe(prompt, voice=voice, speed=speed):
+        speechs.append(speech)
+    speech = torch.cat(speechs, dim=0)
+    log(nc, LogLvl.INFO, f"speech generated: {perf_counter() - time_start}s")
+    # export tensors to wave
+    speech_stream = io.BytesIO()
+    speech_stream.name = "speech.mp3" # WAV files with metadata cannot be played in firefox
+    sf.write(speech_stream, speech, 24000, format='MP3')
+    speech_stream.seek(0)
+    return speech_stream
+
+
+def add_metadata_to_audio(speech_stream):
+    with tempfile.NamedTemporaryFile(suffix=".mp3", delete=True) as tmp_file:
+        temp_filename = tmp_file.name
+        tmp_file.write(speech_stream.getvalue())
+        new_metadata = {
+            UnifiedMetadataKey.COMMENT: 'Generated using Artificial Intelligence',
+        }
+        update_metadata(temp_filename, new_metadata)
+
+        # Read the modified file back into a BytesIO stream
+        output_stream = io.BytesIO()
+        with open(temp_filename, "rb") as f:
+            output_stream.write(f.read())
+        output_stream.seek(0)
+    return output_stream
 
 
 def start_bg_task():
