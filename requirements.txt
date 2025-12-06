@@ -3,5 +3,5 @@ kokoro==0.9.4
 soundfile==0.13.1
 misaki==0.9.4
 torch==2.9.0
-audiometa_python==0.2.9
+audiometa_python==0.8.1
 static_ffmpeg==2.13
