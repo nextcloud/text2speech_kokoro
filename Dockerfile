@@ -37,7 +37,7 @@ FROM python:3.12-slim-bookworm
 COPY --from=builder /usr/local/ /usr/local/
 
 # Install any runtime apt packages your app needs.
-RUN apt-get update && apt-get install -y espeak-ng && \
+RUN apt-get update && apt-get install -y espeak-ng curl procps && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Add application files.
