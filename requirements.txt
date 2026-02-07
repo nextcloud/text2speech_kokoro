@@ -1,4 +1,4 @@
-nc_py_api[app]==0.23.0
+nc_py_api[app]==0.24.0
 kokoro==0.9.4
 soundfile==0.13.1
 misaki==0.9.4
