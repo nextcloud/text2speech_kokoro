@@ -177,7 +177,8 @@ def background_thread_task():
             wait_for_task(10)
             continue
         except (
-                niquests.HTTPError
+                niquests.HTTPError,
+                niquests.exceptions.ConnectionError,
         ) as e:
             tb_str = "".join(traceback.format_exception(e))
             log(nc, LogLvl.DEBUG, f"Ignored error during task polling {tb_str}")
