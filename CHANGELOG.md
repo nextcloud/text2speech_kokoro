@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.5.0 - 2026-03-31
+
+### Added
+
+- Update python dependencies and support Nextcloud 34 @lukasdotcom [#65](https://github.com/nextcloud/text2speech_kokoro/pull/65)
+
+### Fixed
+
+- fix: Improve error handeling @lukasdotcom [#60](https://github.com/nextcloud/text2speech_kokoro/pull/60)
+
 ## 1.4.0 - 2026-01-07
 
 ### Added
